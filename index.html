@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="es" class="scroll-smooth">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Automatizaciones con IA — Enzo Reboredo</title>
+    <meta name="description" content="Ganá horas y clientes con agentes de IA: agenda inteligente, atención al cliente y prospección automatizada. Respuesta en &lt;60 minutos." />
+    <meta name="theme-color" content="#10b981" />
+    <link rel="icon" href="favicon.ico" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Enzo Reboredo — Automatizaciones con IA" />
+    <meta property="og:title" content="Automatizaciones con IA — Ganá horas y clientes" />
+    <meta property="og:description" content="Agentes IA para agenda, atención y prospección. Empezá en días, sin permanencia." />
+    <meta property="og:url" content="" />
+    <meta property="og:image" content="/og-image.png" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Automatizaciones con IA — Ganá horas y clientes" />
+    <meta name="twitter:description" content="Agentes IA para agenda, atención y prospección. Empezá en días, sin permanencia." />
+    <meta name="twitter:image" content="/og-image.png" />
+
+    <!-- Schema.org Organization -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Enzo Reboredo",
+        "url": "",
+        "sameAs": [],
+        "description": "Automatizaciones con IA: agenda inteligente, atención al cliente y prospección automatizada.",
+        "logo": "/og-image.png"
+      }
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-neutral-950 text-neutral-100">
+    <div id="root"></div>
+
+    <!-- React 18 UMD + Babel for JSX in the browser (for quick preview) -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script type="text/babel">
+      const { useEffect, useState } = React;
+
+      const WHATSAPP_LINK = "https://wa.me/XXXXXXXXXXX";
+      const FORMS_ENDPOINT = "/api/forms"; // placeholder
+      // Enlace a tu página de reservas de Google Calendar (Appointment schedules)
+      // Ej: https://calendar.app.google/XXXX o link público de tu agenda
+      const GOOGLE_BOOKING_URL = "https://calendar.app.google/EkX5xYzHYkfR3kQZA"; // <- pegalo aquí cuando lo tengas
+
+      function Check() {
+        return (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 6L9 17l-5-5" />
+          </svg>
+        );
+      }
+
+      function LandingEnzoReboredo() {
+        const [status, setStatus] = useState("idle");
+        const [error, setError] = useState("");
+
+        useEffect(() => {
+          const header = document.querySelector("header");
+          const getOffsetTop = (el) => {
+            const headerH = (header && header.offsetHeight) || 0;
+            const rect = el.getBoundingClientRect();
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            return rect.top + scrollTop - headerH - 8;
+          };
+
+          const onClick = (e) => {
+            const a = e.currentTarget;
+            if (a instanceof HTMLAnchorElement && a.hash && a.hash.startsWith("#")) {
+              const target = document.querySelector(a.hash);
+              if (target instanceof HTMLElement) {
+                e.preventDefault();
+                window.scrollTo({ top: getOffsetTop(target), behavior: "smooth" });
+                if (a.hash === "#contacto") {
+                  const first = document.querySelector('#contacto form input, #contacto form textarea');
+                  if (first instanceof HTMLElement) first.focus();
+                }
+              }
+            }
+          };
+
+          const anchors = Array.from(document.querySelectorAll('a[href^="#"]'));
+          anchors.forEach((a) => a.addEventListener("click", onClick));
+          return () => anchors.forEach((a) => a.removeEventListener("click", onClick));
+        }, []);
+
+        // Evitar duplicado: cambiar tarjeta de confianza "< 60 min" -> "Piloto en 7 días"
+        useEffect(() => {
+          const trust = document.querySelector('section.mx-auto.max-w-6xl.px-4.pt-4.pb-2');
+          if (!trust) return;
+          const first = trust.querySelector('.rounded-2xl');
+          if (!first) return;
+          const badge = first.querySelector('span');
+          const text = first.querySelector('div');
+          if (badge) badge.textContent = 'Piloto en 7 días';
+          if (text) text.textContent = 'Implementación rápida';
+        }, []);
+
+        useEffect(() => {
+          try {
+            console.assert(!!document.querySelector('a[href="#contacto"]'), "[TEST] Falta al menos un CTA a #contacto");
+            ["#servicios", "#como-funciona", "#testimonios", "#faqs", "#contacto"].forEach((id) => {
+              console.assert(!!document.querySelector(id), `[TEST] Falta la sección ${id}`);
+            });
+            const h1 = document.querySelector("h1");
+            console.assert(!!h1 && (h1.textContent ?? '').length > 0, "[TEST] <h1> debería tener contenido");
+          } catch {}
+        }, []);
+
+        // Normalizar formulario: agrupar label+input y crear labels faltantes
+        useEffect(() => {
+          const form = document.querySelector('#contacto form');
+          if (!form) return;
+
+          const ensureGroupById = (id, labelText, span2 = false) => {
+            const input = form.querySelector(`#${id}`) || form.querySelector(`[name="${id}"]`);
+            if (!input) return;
+            const el = input;
+            if (!(el instanceof HTMLElement)) return;
+            if (!el.id) el.id = id;
+
+            // Find an existing preceding label (if any)
+            let label = form.querySelector(`label[for="${el.id}"]`);
+            if (!label) {
+              label = document.createElement('label');
+              label.setAttribute('for', el.id);
+              label.textContent = labelText;
+            }
+            label.classList.add('block','text-sm','text-neutral-300','mb-1');
+
+            // Create wrapper and move nodes
+            const wrapper = document.createElement('div');
+            if (span2) wrapper.className = 'md:col-span-2';
+            el.classList.add('w-full');
+
+            // Insert wrapper before the earliest of label/input
+            const anchor = label.parentElement === form && label.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING ? label : el;
+            form.insertBefore(wrapper, anchor);
+            if (label.parentElement) label.parentElement.removeChild(label);
+            if (el.parentElement) el.parentElement.removeChild(el);
+            wrapper.appendChild(label);
+            wrapper.appendChild(el);
+          };
+
+          // Fields
+          ensureGroupById('name', 'Nombre');
+          ensureGroupById('email', 'Email');
+          ensureGroupById('phone', 'Teléfono de contacto', true);
+          ensureGroupById('company', 'Empresa (opcional)', true);
+          ensureGroupById('role', 'Rol', true);
+          ensureGroupById('help', '¿Cómo te puedo ayudar?', true);
+        }, []);
+
+        // FAQs: reemplazar '+' por chevron y rotar al abrir/cerrar
+        useEffect(() => {
+          const list = Array.from(document.querySelectorAll('#faqs details'));
+          list.forEach((d) => {
+            const summary = d.querySelector('summary');
+            if (!summary) return;
+            const spans = summary.querySelectorAll('span');
+            const icon = spans[spans.length - 1];
+            if (!icon) return;
+            const isPlus = (icon.textContent || '').trim() === '+';
+            if (isPlus) {
+              icon.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>';
+              icon.classList.add('text-neutral-400', 'transition-transform', 'duration-300');
+              const update = () => {
+                if (d.open) icon.classList.add('rotate-180'); else icon.classList.remove('rotate-180');
+              };
+              d.addEventListener('toggle', update);
+              update();
+            }
+          });
+        }, []);
+
+        // Aparecer al scrollear (suave, respeta reduce motion)
+        useEffect(() => {
+          const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          if (reduce) return;
+          const selectors = [
+            '#servicios .rounded-3xl',
+            '#como-funciona .rounded-3xl',
+            '#testimonios .rounded-3xl',
+            '#faqs details',
+            '#contacto .rounded-3xl',
+          ];
+          const targets = selectors.flatMap((sel) => Array.from(document.querySelectorAll(sel)));
+          targets.forEach((el) => {
+            el.classList.add('opacity-0','translate-y-4','transition-all','duration-500','ease-out');
+          });
+          const io = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                const el = entry.target;
+                el.classList.remove('opacity-0','translate-y-4');
+                el.classList.add('opacity-100','translate-y-0');
+                io.unobserve(el);
+              }
+            });
+          }, { rootMargin: '0px 0px -10% 0px', threshold: 0.15 });
+          targets.forEach((el) => io.observe(el));
+          return () => io.disconnect();
+        }, []);
+
+        // FAQs: animación suave en expandir/contraer (height + fade)
+        useEffect(() => {
+          const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          if (reduce) return; // deja el comportamiento nativo
+          const items = Array.from(document.querySelectorAll('#faqs details'));
+          const cleanups = [];
+
+          items.forEach((el) => {
+            const summary = el.querySelector('summary');
+            if (!summary) return;
+
+            // Crear wrapper que contenga TODO lo posterior al summary para animar altura
+            let panel = summary.nextElementSibling;
+            if (!(panel && panel.classList.contains('faq-panel'))) {
+              const wrapper = document.createElement('div');
+              wrapper.className = 'faq-panel overflow-hidden';
+              const nodes = [];
+              let sib = summary.nextSibling;
+              while (sib) { nodes.push(sib); sib = sib.nextSibling; }
+              nodes.forEach((n) => wrapper.appendChild(n));
+              summary.parentElement.insertBefore(wrapper, summary.nextSibling);
+              panel = wrapper;
+            }
+            const panelEl = panel;
+            if (!(panelEl instanceof HTMLElement)) return;
+            panelEl.style.willChange = 'height, opacity';
+            const setCollapsed = () => { panelEl.style.height = '0px'; panelEl.style.opacity = '0'; };
+            const setExpanded = () => { panelEl.style.height = panelEl.scrollHeight + 'px'; panelEl.style.opacity = '1'; };
+
+            // Estado inicial
+            requestAnimationFrame(() => {
+              if (el.open) { panelEl.style.height = 'auto'; panelEl.style.opacity = '1'; }
+              else { setCollapsed(); }
+            });
+
+            let animating = false;
+            const onClick = (e) => {
+              e.preventDefault();
+              if (animating) return;
+              animating = true;
+              const opening = !el.open;
+              if (opening) {
+                el.open = true;
+                panelEl.style.height = '0px';
+                panelEl.style.opacity = '0';
+                // forzar reflow
+                // eslint-disable-next-line no-unused-expressions
+                panelEl.offsetHeight;
+                panelEl.style.transition = 'height 300ms ease, opacity 200ms ease';
+                setExpanded();
+                const done = () => {
+                  panelEl.style.transition = '';
+                  panelEl.style.height = 'auto';
+                  panelEl.removeEventListener('transitionend', done);
+                  animating = false;
+                };
+                panelEl.addEventListener('transitionend', done);
+              } else {
+                panelEl.style.height = panelEl.scrollHeight + 'px';
+                // reflow
+                // eslint-disable-next-line no-unused-expressions
+                panelEl.offsetHeight;
+                panelEl.style.transition = 'height 300ms ease, opacity 200ms ease';
+                setCollapsed();
+                const done = () => {
+                  panelEl.style.transition = '';
+                  el.open = false;
+                  panelEl.removeEventListener('transitionend', done);
+                  animating = false;
+                };
+                panelEl.addEventListener('transitionend', done);
+              }
+            };
+            summary.addEventListener('click', onClick);
+
+            const onResize = () => {
+              if (el.open) {
+                panelEl.style.height = 'auto';
+              } else {
+                panelEl.style.height = '0px';
+              }
+            };
+            window.addEventListener('resize', onResize);
+
+            cleanups.push(() => {
+              summary.removeEventListener('click', onClick);
+              window.removeEventListener('resize', onResize);
+            });
+          });
+
+          return () => cleanups.forEach((fn) => fn());
+        }, []);
+
+        async function handleSubmit(e) {
+          e.preventDefault();
+          setStatus("loading");
+          setError("");
+
+          const form = e.currentTarget;
+          const formData = new FormData(form);
+          // Honeypot: si está relleno, abortar silenciosamente
+          const hp = (formData.get("company_website") || "").toString().trim();
+          if (hp) {
+            setStatus("idle");
+            return;
+          }
+
+          const data = Object.fromEntries(formData.entries());
+          // Validaciones básicas
+          const email = (data.email || "").toString().trim();
+          const phone = (data.phone || "").toString().trim();
+          const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+          const digits = phone.replace(/\D/g, "");
+          const phoneOk = digits.length >= 7;
+          if (!emailOk) {
+            setStatus("error");
+            setError("Ingresá un email válido.");
+            return;
+          }
+          if (!phoneOk) {
+            setStatus("error");
+            setError("Ingresá un teléfono válido (con código de área).");
+            return;
+          }
+
+          try {
+            const res = await fetch(FORMS_ENDPOINT, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                source: "landing-enzo",
+                timestamp: new Date().toISOString(),
+                ...data,
+              }),
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            setStatus("success");
+            form.reset();
+          } catch (err) {
+            console.error(err);
+            setError("No se pudo enviar. Probá de nuevo o escribime por WhatsApp.");
+            setStatus("error");
+          }
+        }
+
+        return (
+          <div className="min-h-screen bg-neutral-950 text-neutral-100">
+            <header className="sticky top-0 z-30 backdrop-blur supports-[backdrop-filter]:bg-neutral-950/70 border-b border-neutral-800">
+              <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400">ER</span>
+                  <span className="font-semibold">Enzo Reboredo — Automatizaciones con IA</span>
+                </div>
+                <nav className="hidden sm:flex items-center gap-6 text-sm text-neutral-300">
+                  <a href="#servicios" className="hover:text-white">Servicios</a>
+                  <a href="#como-funciona" className="hover:text-white">Cómo funciona</a>
+                  <a href="#testimonios" className="hover:text-white">Testimonios</a>
+                  <a href="#faqs" className="hover:text-white">Preguntas</a>
+                  <a href="#contacto" className="hover:text-white">Contacto</a>
+                </nav>
+              </div>
+            </header>
+
+      <section className="relative">
+        {/* Gradientes de fondo suaves en el hero */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+          <div className="absolute top-[-12rem] left-[-8rem] h-[28rem] w-[28rem] rounded-full bg-emerald-500/20 blur-3xl"></div>
+          <div className="absolute bottom-[-12rem] right-[-8rem] h-[26rem] w-[26rem] rounded-full bg-sky-500/15 blur-3xl"></div>
+        </div>
+              <div className="mx-auto max-w-6xl px-4 py-20 md:py-28 grid md:grid-cols-2 gap-10 items-center">
+                <div>
+                  <h1 className="text-4xl md:text-5xl font-semibold leading-tight">
+                    Liberá tiempo y delegá lo repetitivo con <span className="text-emerald-400">Agentes IA</span>.
+                  </h1>
+                  <p className="mt-5 text-neutral-300 text-lg">
+                    Descubrí en minutos cómo un agente puede ahorrarte horas y simplificar tus tareas diarias. Personas y empresas que adoptan IA y automatización logran hasta un <strong>60%</strong> de crecimiento en productividad. No te quedes atrás.
+                  </p>
+                  <div className="mt-8 flex flex-wrap gap-3">
+                    <a href="#contacto" className="px-5 py-3 rounded-2xl bg-emerald-500 text-neutral-950 font-medium hover:bg-emerald-400 transition">Reservá ahora</a>
+                    <a
+                      href={GOOGLE_BOOKING_URL || "#contacto"}
+                      target={GOOGLE_BOOKING_URL ? "_blank" : "_self"}
+                      rel={GOOGLE_BOOKING_URL ? "noreferrer noopener" : undefined}
+                      className="px-5 py-3 rounded-2xl border border-neutral-700 hover:border-neutral-500"
+                    >
+                      {GOOGLE_BOOKING_URL ? "Agendar con Google Calendar" : "Agendar (activá Google Calendar)"}
+                    </a>
+                  </div>
+                </div>
+                <div className="relative">
+                  <div className="rounded-3xl border border-neutral-800 bg-neutral-900/60 p-6 shadow-2xl">
+                    <ul className="space-y-2 text-sm">
+                      <li className="flex items-center gap-2"><Check /> Agenda inteligente: coordina, reasigna y confirma por vos.</li>
+                      <li className="flex items-center gap-2"><Check /> Atención al cliente en WhatsApp/IG: respuestas rápidas y con contexto.</li>
+                      <li className="flex items-center gap-2"><Check /> Prospección automática: encuentra, califica y escribe a potenciales clientes.</li>
+                      <li className="flex items-center gap-2"><Check /> Integración con Google Calendar, Gmail, Shopify y más.</li>
+                      <li className="flex items-center gap-2"><Check /> Tu marca y tu tono: mensajes personalizados con tu estilo.</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* KPIs bajo el hero */}
+            <section className="mx-auto max-w-6xl px-4">
+              <div className="grid gap-3 sm:grid-cols-3 text-center">
+                <div className="rounded-2xl border border-neutral-800 bg-neutral-900 px-4 py-5">
+                  <div className="text-3xl font-semibold text-emerald-400">-80%</div>
+                  <div className="text-sm text-neutral-300 mt-1">Tiempo de respuesta</div>
+                </div>
+                <div className="rounded-2xl border border-neutral-800 bg-neutral-900 px-4 py-5">
+                  <div className="text-3xl font-semibold text-emerald-400">+8</div>
+                  <div className="text-sm text-neutral-300 mt-1">Reuniones por mes</div>
+                </div>
+                <div className="rounded-2xl border border-neutral-800 bg-neutral-900 px-4 py-5">
+                  <div className="text-3xl font-semibold text-emerald-400">&lt; 60m</div>
+                  <div className="text-sm text-neutral-300 mt-1">Primera respuesta</div>
+                </div>
+              </div>
+            </section>
+
+            <section className="mx-auto max-w-6xl px-4 pt-4 pb-2">
+              <div className="grid md:grid-cols-3 gap-3 text-sm">
+                <div className="rounded-2xl border border-neutral-800 bg-neutral-900 px-4 py-3 flex items-center gap-3">
+                  <span className="inline-flex items-center justify-center rounded-md bg-emerald-500/15 text-emerald-400 px-2 py-1 text-xs">&lt; 60 min</span>
+                  <div className="text-neutral-300">Primera respuesta garantizada</div>
+                </div>
+                <div className="rounded-2xl border border-neutral-800 bg-neutral-900 px-4 py-3 flex items-center gap-3">
+                  <span className="inline-flex items-center justify-center rounded-md bg-emerald-500/15 text-emerald-400 px-2 py-1 text-xs">Sin permanencia</span>
+                  <div className="text-neutral-300">Seguimos sólo si ves valor</div>
+                </div>
+                <div className="rounded-2xl border border-neutral-800 bg-neutral-900 px-4 py-3 flex items-center gap-3">
+                  <span className="inline-flex items-center justify-center rounded-md bg-emerald-500/15 text-emerald-400 px-2 py-1 text-xs">Global</span>
+                  <div className="text-neutral-300">Trabajamos remoto para cualquier país</div>
+                </div>
+              </div>
+            </section>
+
+            <section id="servicios" className="mx-auto max-w-6xl px-4 py-16">
+              <h2 className="text-2xl md:text-3xl font-semibold">Servicios</h2>
+              <div className="mt-6 grid md:grid-cols-3 gap-6">
+                <div className="rounded-3xl border border-neutral-800 bg-neutral-900 p-6 transition hover:border-neutral-700 hover:shadow-lg hover:shadow-black/20 hover:-translate-y-0.5">
+                  <h3 className="text-lg font-semibold">Automatización de procesos</h3>
+                  <ul className="mt-3 space-y-2 text-sm text-neutral-300">
+                    <li className="flex items-center gap-2"><Check /> Flujos con n8n/Make/Zapier + APIs</li>
+                    <li className="flex items-center gap-2"><Check /> Extracción y limpieza de datos</li>
+                    <li className="flex items-center gap-2"><Check /> Notificaciones y reportes automáticos</li>
+                  </ul>
+                </div>
+                <div className="rounded-3xl border border-neutral-800 bg-neutral-900 p-6 transition hover:border-neutral-700 hover:shadow-lg hover:shadow-black/20 hover:-translate-y-0.5">
+                  <h3 className="text-lg font-semibold">Chatbots & Agentes</h3>
+                  <ul className="mt-3 space-y-2 text-sm text-neutral-300">
+                    <li className="flex items-center gap-2"><Check /> Agenda inteligente (Google Calendar)</li>
+                    <li className="flex items-center gap-2"><Check /> Soporte en WhatsApp/IG con memoria</li>
+                    <li className="flex items-center gap-2"><Check /> Prospección y calificación automática</li>
+                  </ul>
+                </div>
+                <div className="rounded-3xl border border-neutral-800 bg-neutral-900 p-6 transition hover:border-neutral-700 hover:shadow-lg hover:shadow-black/20 hover:-translate-y-0.5">
+                  <h3 className="text-lg font-semibold">Estrategia y Funnels</h3>
+                  <ul className="mt-3 space-y-2 text-sm text-neutral-300">
+                    <li className="flex items-center gap-2"><Check /> Mapas de conversión y landing pages</li>
+                    <li className="flex items-center gap-2"><Check /> E‑mail/SMS automations</li>
+                    <li className="flex items-center gap-2"><Check /> Medición y dashboards</li>
+                  </ul>
+                </div>
+              </div>
+              <div className="mt-8 flex justify-center gap-3">
+                <a href="#contacto" className="px-5 py-3 rounded-2xl bg-emerald-500 text-neutral-950 font-medium hover:bg-emerald-400">Hablemos ahora</a>
+                <a
+                  href={GOOGLE_BOOKING_URL || "#contacto"}
+                  target={GOOGLE_BOOKING_URL ? "_blank" : "_self"}
+                  rel={GOOGLE_BOOKING_URL ? "noreferrer noopener" : undefined}
+                  className="px-5 py-3 rounded-2xl border border-neutral-700 hover:border-neutral-500"
+                >
+                  Agendar demo
+                </a>
+              </div>
+            </section>
+
+            <section id="como-funciona" className="mx-auto max-w-6xl px-4 py-16">
+              <h2 className="text-2xl md:text-3xl font-semibold">Cómo funciona</h2>
+              <div className="mt-6 grid md:grid-cols-4 gap-6 text-sm">
+                {[
+                  { step: "01", t: "Diagnóstico", d: "15–30 min para entender tu proceso y detectar quick wins." },
+                  { step: "02", t: "Prototipo", d: "En pocos días probás el agente en tu propio flujo." },
+                  { step: "03", t: "Integración", d: "Conecto tus apps (Calendar, Gmail, Shopify, etc.)." },
+                  { step: "04", t: "Escala", d: "Monitoreo, mejoras y nuevas reglas según métricas." },
+          ].map((s) => (
+            <div key={s.step} className="rounded-3xl border border-neutral-800 bg-neutral-900 p-6 transition hover:border-neutral-700 hover:shadow-lg hover:shadow-black/20 hover:-translate-y-0.5">
+                    <div className="text-neutral-400">Paso {s.step}</div>
+                    <div className="mt-1 font-semibold">{s.t}</div>
+                    <p className="mt-2 text-neutral-300">{s.d}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section id="testimonios" className="mx-auto max-w-6xl px-4 py-16">
+              <h2 className="text-2xl md:text-3xl font-semibold">Lo que dicen clientes</h2>
+              <div className="mt-6 grid md:grid-cols-3 gap-6">
+                {[
+                  { q: "Bajamos 80% el tiempo de respuesta y subieron las ventas.", a: "Sergio — E‑commerce" },
+                  { q: "La agenda dejó de chocar y liberé varias horas a la semana.", a: "Mariana — Servicios" },
+                  { q: "8 reuniones por mes con prospección automatizada.", a: "Valeria — Consultoría" },
+                ].map((t) => (
+                  <div key={t.a} className="rounded-3xl border border-neutral-800 bg-neutral-900 p-6">
+                    <p className="text-neutral-200">“{t.q}”</p>
+                    <div className="mt-3 text-sm text-neutral-400">— {t.a}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-8 flex justify-center gap-3">
+                <a href="#contacto" className="px-5 py-3 rounded-2xl bg-emerald-500 text-neutral-950 font-medium hover:bg-emerald-400">Contactar</a>
+                <a
+                  href={GOOGLE_BOOKING_URL || "#contacto"}
+                  target={GOOGLE_BOOKING_URL ? "_blank" : "_self"}
+                  rel={GOOGLE_BOOKING_URL ? "noreferrer noopener" : undefined}
+                  className="px-5 py-3 rounded-2xl border border-neutral-700 hover:border-neutral-500"
+                >
+                  Agendar demo
+                </a>
+              </div>
+            </section>
+
+            <section id="faqs" className="mx-auto max-w-6xl px-4 pb-16">
+              <h2 className="text-2xl md:text-3xl font-semibold">Preguntas frecuentes</h2>
+              <div className="mt-6 space-y-3">
+                <details className="group rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
+                  <summary className="cursor-pointer list-none flex items-center justify-between">
+                    <span className="font-medium">¿Cuánto tiempo tarda en implementarse la IA?</span>
+                    <span className="text-neutral-400">+</span>
+                  </summary>
+                  <div className="grid transition-[grid-template-rows] duration-300 ease-out grid-rows-[0fr] group-open:grid-rows-[1fr]">
+                    <div className="min-h-0 overflow-hidden">
+                  <p className="mt-3 text-neutral-300 text-sm">
+                    En días ya podés tener un prototipo funcional. Un agente administrativo o de soporte se monta en menos de una semana. Proyectos más complejos pueden llevar algunas semanas, pero siempre arrancamos con un piloto rápido.
+                  </p>
+                    </div>
+                  </div>
+                </details>
+                <details className="group rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
+                  <summary className="cursor-pointer list-none flex items-center justify-between">
+                    <span className="font-medium">¿Hay cláusulas de permanencia?</span>
+                    <span className="text-neutral-400">+</span>
+                  </summary>
+                  <div className="grid transition-[grid-template-rows] duration-300 ease-out grid-rows-[0fr] group-open:grid-rows-[1fr]">
+                    <div className="min-h-0 overflow-hidden">
+                  <p className="mt-3 text-neutral-300 text-sm">
+                    No. Trabajo por valor: si no ves impacto, paramos. Prefiero relaciones de largo plazo por resultados, no por contrato.
+                  </p>
+                    </div>
+                  </div>
+                </details>
+                <details className="group rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
+                  <summary className="cursor-pointer list-none flex items-center justify-between">
+                    <span className="font-medium">¿Desde dónde trabajás?</span>
+                    <span className="text-neutral-400">+</span>
+                  </summary>
+                  <div className="grid transition-[grid-template-rows] duration-300 ease-out grid-rows-[0fr] group-open:grid-rows-[1fr]">
+                    <div className="min-h-0 overflow-hidden">
+                  <p className="mt-3 text-neutral-300 text-sm">
+                    Remoto, con clientes en varios países. Coordinamos por WhatsApp/Meet y me integro a tus herramientas.
+                  </p>
+                    </div>
+                  </div>
+                </details>
+                <details className="group rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
+                  <summary className="cursor-pointer list-none flex items-center justify-between">
+                    <span className="font-medium">¿Por qué contratarme?</span>
+                    <span className="text-neutral-400">+</span>
+                  </summary>
+                  <div className="grid transition-[grid-template-rows] duration-300 ease-out grid-rows-[0fr] group-open:grid-rows-[1fr]">
+                    <div className="min-h-0 overflow-hidden">
+                  <p className="mt-3 text-neutral-300 text-sm">
+                    Porque combino experiencia técnica en desarrollo y automatización con cercanía humana. No vendo plantillas genéricas: diseño agentes a medida de tu negocio, con soporte directo y flexibilidad. Mi objetivo es que veas resultados rápidos y claros, sin complicaciones.
+                  </p>
+                    </div>
+                  </div>
+                </details>
+                <details className="group rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
+                  <summary className="cursor-pointer list-none flex items-center justify-between">
+                    <span className="font-medium">¿Cómo empezamos?</span>
+                    <span className="text-neutral-400">+</span>
+                  </summary>
+                  <div className="grid transition-[grid-template-rows] duration-300 ease-out grid-rows-[0fr] group-open:grid-rows-[1fr]">
+                    <div className="min-h-0 overflow-hidden">
+                  <p className="mt-3 text-neutral-300 text-sm">
+                    Primero evaluamos si tu negocio encaja con el tipo de proyectos que trabajo. Completás el formulario al final de esta página y en menos de 60 minutos me pongo en contacto. Si vemos potencial, agendamos una reunión más larga para profundizar y diseñar un plan de acción concreto.
+                  </p>
+                    </div>
+                  </div>
+                </details>
+              </div>
+            </section>
+
+            <section id="contacto" className="mx-auto max-w-6xl px-4 pb-20">
+              <div className="rounded-3xl border border-neutral-800 bg-neutral-900 p-8 text-center">
+                <h2 className="text-2xl md:text-3xl font-semibold">¿Listo para ganar horas y clientes?</h2>
+                <p className="mt-2 text-neutral-300">Dejame tu contacto y te respondo en menos de 60 minutos.</p>
+                <div className="mt-6">
+                  <form onSubmit={handleSubmit} className="grid md:grid-cols-2 gap-3 text-left">
+                    <input name="company_website" tabIndex="-1" autoComplete="off" className="hidden" aria-hidden="true" />
+                    <label htmlFor="name" className="text-sm text-neutral-300">Nombre</label>
+                    <input id="name" name="name" required placeholder="Tu nombre" className="rounded-2xl bg-neutral-950 border border-neutral-800 px-3 py-2 focus:outline-none focus:border-emerald-600" />
+                    <label htmlFor="email" className="text-sm text-neutral-300">Email</label>
+                    <input id="email" name="email" required type="email" inputMode="email" placeholder="tu@correo.com" className="rounded-2xl bg-neutral-950 border border-neutral-800 px-3 py-2 focus:outline-none focus:border-emerald-600" />
+                    <input name="phone" required placeholder="Teléfono de contacto" className="rounded-2xl bg-neutral-950 border border-neutral-800 px-3 py-2 focus:outline-none focus:border-emerald-600 md:col-span-2" />
+                    <input name="company" placeholder="Nombre de la empresa (opcional)" className="rounded-2xl bg-neutral-950 border border-neutral-800 px-3 py-2 focus:outline-none focus:border-emerald-600 md:col-span-2" />
+                    <input name="role" placeholder="Rol en la empresa" className="rounded-2xl bg-neutral-950 border border-neutral-800 px-3 py-2 focus:outline-none focus:border-emerald-600 md:col-span-2" />
+                    <textarea name="help" placeholder="¿Cómo te puedo ayudar?" rows="4" className="rounded-2xl bg-neutral-950 border border-neutral-800 px-3 py-2 focus:outline-none focus:border-emerald-600 md:col-span-2"></textarea>
+                    <button disabled={status === "loading"} className="md:col-span-2 rounded-2xl bg-emerald-500 text-neutral-950 font-medium px-5 py-2 hover:bg-emerald-400 disabled:opacity-60">
+                      {status === "loading" ? "Enviando…" : "Contactame ya"}
+                    </button>
+                  </form>
+                  {status === "success" && <p className="text-emerald-400 text-sm pt-2">¡Listo! Te escribo a la brevedad.</p>}
+                  {status === "error" && <p className="text-red-400 text-sm pt-2">{error}</p>}
+                </div>
+              </div>
+            </section>
+
+            <footer className="border-t border-neutral-800">
+              <div className="mx-auto max-w-6xl px-4 py-8 text-sm text-neutral-400 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+                <div>© {new Date().getFullYear()} Enzo Reboredo — Automatizaciones con IA</div>
+                <div className="flex gap-4">
+                  <a className="hover:text-white" href="#faqs">FAQs</a>
+                  <a className="hover:text-white" href="#servicios">Servicios</a>
+                  <a className="hover:text-white" href="#contacto">Contacto</a>
+                </div>
+              </div>
+            </footer>
+
+            {/* Botón flotante: Agendar con Google Calendar (visible en mobile) */}
+            <a
+              href={GOOGLE_BOOKING_URL || "#contacto"}
+              target={GOOGLE_BOOKING_URL ? "_blank" : "_self"}
+              rel={GOOGLE_BOOKING_URL ? "noreferrer noopener" : undefined}
+              className="fixed bottom-6 right-6 z-50 inline-flex items-center gap-2 rounded-full bg-emerald-500 text-neutral-950 font-medium px-5 py-3 shadow-lg shadow-emerald-500/20 hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-300"
+              aria-label="Agendar con Google Calendar"
+            >
+              <span className="relative -ml-1 mr-1 flex h-3 w-3" aria-hidden="true">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-300"></span>
+              </span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+              <span>Agendar</span>
+            </a>
+          </div>
+        );
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById("root"));
+      root.render(<LandingEnzoReboredo />);
+    </script>
+  </body>
+  </html>
