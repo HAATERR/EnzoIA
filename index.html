@@ -351,16 +351,16 @@
           }
 
           try {
-            // Para evitar CORS preflight con Google Apps Script, usamos FormData (multipart/form-data)
-            const payload = new FormData(form);
-            payload.set('source', 'landing-enzo');
-            payload.set('timestamp', new Date().toISOString());
+            // Enviar como application/x-www-form-urlencoded para Apps Script (e.parameter)
+            const params = new URLSearchParams();
+            Object.entries(data).forEach(([k, v]) => params.append(k, String(v ?? '')));
+            params.set('source', 'landing-enzo');
+            params.set('timestamp', new Date().toISOString());
 
             const res = await fetch(FORMS_ENDPOINT, {
               method: "POST",
-              // No seteamos Content-Type manualmente; el navegador define boundary correctamente.
-              headers: { "Accept": "application/json" },
-              body: payload,
+              headers: { "Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+              body: params.toString(),
             });
             // Considerar éxito solo si responde ok:true en JSON (cuando esté disponible)
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
