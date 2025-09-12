@@ -1,0 +1,26 @@
+          });
+
+          return () => cleanups.forEach((fn) => fn());
+        }, []);
+
+        async function handleSubmit(e) {
+          e.preventDefault();
+          setStatus("loading");
+          setError("");
+
+          const form = e.currentTarget;
+          const formData = new FormData(form);
+          // Honeypot: si está relleno, abortar silenciosamente
+          const hp = (formData.get("company_website") || "").toString().trim();
+          if (hp) {
+            setStatus("idle");
+            return;
+          }
+
+          const data = Object.fromEntries(formData.entries());
+          // Validaciones básicas
+          const email = (data.email || "").toString().trim();
+          const phone = (data.phone || "").toString().trim();
+          const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+          const digits = phone.replace(/\D/g, "");
+          const phoneOk = digits.length >= 7;
