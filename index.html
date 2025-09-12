@@ -53,7 +53,7 @@
       // - Formspree: https://formspree.io/f/TU_ID (crear form gratis y pegar la URL)
       // - Google Apps Script (Web App): URL del deploy (ver snippet más abajo)
       // Mientras no lo configures, el submit mostrará un error explicando qué hacer.
-      const FORMS_ENDPOINT = "https://script.google.com/macros/s/AKfycbz5DwN-xzZCpQOSP6Zd77nQ458gOpsl_NLIhrXlzCaf3yJxTW_NPCmRE3v4M7lIWr-lKA/exec"; // TODO: reemplazar por tu URL (Formspree o Apps Script)
+      const FORMS_ENDPOINT = "https://script.google.com/macros/s/AKfycbyoKDRIL2psIM1OosTfdOANXQ6iHwazbCzOW4wo28Zq8TsMsuaVWR4JzU4KPmrKqiLN/exec"; // TODO: reemplazar por tu URL (Formspree o Apps Script)
       // Enlace a tu página de reservas de Google Calendar (Appointment schedules)
       // Ej: https://calendar.app.google/XXXX o link público de tu agenda
       const GOOGLE_BOOKING_URL = "https://calendar.app.google/EkX5xYzHYkfR3kQZA"; // <- pegalo aquí cuando lo tengas
@@ -362,7 +362,17 @@
               headers: { "Accept": "application/json" },
               body: payload,
             });
+            // Considerar éxito solo si responde ok:true en JSON (cuando esté disponible)
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const ct = res.headers.get('content-type') || '';
+            if (ct.includes('application/json')) {
+              try {
+                const body = await res.json();
+                if (body && body.ok === false) throw new Error(body.error || 'Respuesta ok:false');
+              } catch (err) {
+                // Si no se puede parsear JSON, seguimos como éxito para compatibilidad
+              }
+            }
             setStatus("success");
             form.reset();
           } catch (err) {
